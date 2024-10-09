@@ -35,7 +35,7 @@ export default function Page() {
   }>({});
 
   const removeFromCart = (product: Product) => {
-    setCart(cart.filter((p) => p.id !== product.id)); // Should use functional update
+    setCart(cart.filter((p) => p.id !== product.id));
   };
 
   useEffect(() => {

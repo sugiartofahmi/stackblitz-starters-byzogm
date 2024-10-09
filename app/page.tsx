@@ -6,7 +6,7 @@
  * Documentation: https://v0.dev/docs#integrating-generated-code-into-your-nextjs-app
  */
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type Product = {
   id: number;
@@ -22,54 +22,47 @@ type CartItem = {
 };
 
 const PRODUCTS: Product[] = [
-  {
-    id: 1,
-    title: "Wireless Headphones",
-    price: 99.99,
-  },
-  {
-    id: 2,
-    title: "Leather Backpack",
-    price: 129.99,
-  },
-  {
-    id: 3,
-    title: "Fitness Tracker",
-    price: 79.99,
-  },
-  {
-    id: 4,
-    title: "Smart Water Bottle",
-    price: 49.99,
-  },
+  { id: 1, title: "Wireless Headphones", price: 99.99 },
+  { id: 2, title: "Leather Backpack", price: 129.99 },
+  { id: 3, title: "Fitness Tracker", price: 79.99 },
+  { id: 4, title: "Smart Water Bottle", price: 49.99 },
 ];
 
 export default function Page() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [quantities, setQuantities] = useState<{
-    [id: number]: number | undefined;
+    [id: string]: number | undefined;
   }>({});
 
   const removeFromCart = (product: Product) => {
-    setCart((old) => old.filter((p) => p.id !== product.id));
-    setQuantities((old) => ({
-      ...old,
-      [product.id]: undefined,
-    }));
+    setCart(cart.filter((p) => p.id !== product.id)); // Should use functional update
   };
+
+  useEffect(() => {
+    setQuantities(
+      cart.reduce(
+        (acc, product) => ({ ...acc, [product.id]: product.quantity }),
+        {},
+      ),
+    );
+  }, [cart]);
+
+  const totalPrice = cart
+    .reduce(
+      (total, product) => total + product.price * (quantities[product.id] || 1),
+      0,
+    )
+    .toFixed(2);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       {PRODUCTS.map((product) => (
-        <>
-          {console.log(cart.findIndex((p) => p.id === product.id) >= 0)}
-          <Card
-            key={product.id}
-            {...product}
-            isAddedToCart={cart.findIndex((p) => p.id === product.id) >= 0}
-            onAddToCart={(data) => setCart([...cart, data])}
-          />
-        </>
+        <Card
+          key={product.id}
+          {...product}
+          isAddedToCart={cart.findIndex((p) => p.id === product.id) >= 0}
+          onAddToCart={(data) => setCart([...cart, data])}
+        />
       ))}
       {cart.length > 0 && (
         <div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 bg-background rounded-lg shadow-lg overflow-hidden">
@@ -81,11 +74,9 @@ export default function Page() {
                   key={product.id}
                   className="flex items-center justify-between"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">
-                      {product.title} x {product.quantity}
-                    </span>
-                  </div>
+                  <span className="font-semibold">
+                    {product.title} x {product.quantity}
+                  </span>
                   <div className="flex items-center gap-2">
                     <p className="text-primary font-bold">
                       ${(product.price * product.quantity).toFixed(2)}
@@ -103,16 +94,8 @@ export default function Page() {
             </div>
             <div className="mt-4 flex items-center justify-between">
               <p className="font-semibold">Total:</p>
-              <p className="text-primary font-bold">
-                $
-                {cart
-                  .reduce(
-                    (total, product) =>
-                      total + product.price * (quantities[product.id] || 1),
-                    0,
-                  )
-                  .toFixed(2)}
-              </p>
+              <p className="text-primary font-bold">${totalPrice}</p>{" "}
+              {/* Bad practice: expensive calculation in render */}
             </div>
             <Button size="sm" className="w-full mt-4">
               Checkout
@@ -134,6 +117,11 @@ type CardProps = {
 
 const Card = (props: CardProps) => {
   const [quantity, setQuantity] = useState(1);
+
+  // Bad practice: Logic repeated in event handlers
+  const handleAddToCart = () => {
+    props.onAddToCart({ ...props, quantity });
+  };
 
   return (
     <div className="bg-background rounded-lg shadow-lg overflow-hidden">
@@ -171,7 +159,7 @@ const Card = (props: CardProps) => {
           <Button
             size="sm"
             disabled={props.isAddedToCart}
-            onClick={() => props.onAddToCart({ ...props, quantity })}
+            onClick={handleAddToCart} // Repeated logic
           >
             Add to Cart
           </Button>
@@ -181,6 +169,7 @@ const Card = (props: CardProps) => {
   );
 };
 
+// Icon components remain unchanged
 function MinusIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg

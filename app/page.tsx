@@ -47,6 +47,10 @@ export default function Page() {
     );
   }, [cart]);
 
+  // ## Review
+  // Untuk sementara ini belum butuh karena trigger rerender di component ini dapat 
+  // disebabkan oleh perubahan 2 state(cart, quantities), yang artinya setiap kali rerender akan 
+  // mentrigger useMemo karena 2 state tersebut dipakai sebagai dependency useMemo.
   const totalPrice = useMemo(() => {
     return cart
       .reduce(
@@ -57,6 +61,9 @@ export default function Page() {
       .toFixed(2);
   }, [cart, quantities]);
 
+  // ## Review
+  // Untuk useCallback ini bagus untuk mengurangi rerender di component Card
+  // namun tidak works karena component Card tidak diimplementasi menggunakan React.memo
   const handleAddToCart = useCallback((data: CartItem) => {
     setCart((prevCart) => [...prevCart, data]);
   }, []);
@@ -68,6 +75,9 @@ export default function Page() {
           key={product.id}
           {...product}
           isAddedToCart={cart.findIndex((p) => p.id === product.id) >= 0}
+          // ## Review
+          // Langsung onAddToCart={handleAddToCart}, atau memoizationnya tidak akan work,
+          // karena stable reference dari useCallback akan di create ulang setiap rerender
           onAddToCart={(data) => handleAddToCart(data)}
         />
       ))}
